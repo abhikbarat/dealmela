@@ -1,0 +1,55 @@
+---
+import DisclosureBadge from './DisclosureBadge.astro';
+import { ctaLabel } from '../lib/format.js';
+
+interface Props {
+  product: Record<string, any>;
+  sourcePage: string;
+  size?: 'default' | 'large';
+}
+const { product, sourcePage, size = 'default' } = Astro.props;
+const label = ctaLabel(product);
+---
+
+<div class="flex flex-col gap-2">
+  <a
+    href={product.affiliate_link}
+    target="_blank"
+    rel="noopener noreferrer sponsored"
+    data-track-click
+    data-product-id={product.id}
+    data-source-page={sourcePage}
+    class:list={[
+      'inline-flex items-center justify-center gap-2 rounded-full bg-brick text-white font-semibold text-center hover:bg-brick-dark active:scale-[0.98] transition-all shadow-sm',
+      size === 'large' ? 'px-6 py-3.5 text-base' : 'px-5 py-2.5 text-sm',
+    ]}
+  >
+    {label}
+  </a>
+  <DisclosureBadge variant="cta" />
+</div>
+
+<script>
+  // Fire-and-forget click logging. The affiliate link opens in a new tab via
+  // target="_blank", so this never delays or blocks the actual tap-through —
+  // Section 3 lever 5 requires zero friction between intent and redirect.
+  if (!window.__dealmelaClickTrackingBound) {
+    window.__dealmelaClickTrackingBound = true;
+    document.addEventListener('click', (event) => {
+      const el = (event.target as HTMLElement)?.closest('[data-track-click]') as HTMLElement | null;
+      if (!el) return;
+      const productId = el.dataset.productId;
+      const sourcePage = el.dataset.sourcePage || 'unknown';
+      try {
+        fetch('/api/click', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId, sourcePage }),
+          keepalive: true,
+        }).catch(() => {});
+      } catch {
+        // Never let analytics break the actual click-through.
+      }
+    });
+  }
+</script>

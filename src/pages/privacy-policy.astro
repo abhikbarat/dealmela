@@ -1,0 +1,49 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Privacy Policy"
+  description="What information DealMela collects when you browse, and what we deliberately don't collect."
+>
+  <article class="mx-auto max-w-2xl px-4 sm:px-6 pt-10 sm:pt-14 pb-20">
+    <h1 class="font-display text-3xl sm:text-4xl font-semibold text-ink mb-2">Privacy Policy</h1>
+    <p class="text-xs text-ink-faint mb-8">Last updated: [Admin to set date]</p>
+
+    <div class="rounded-xl bg-gold-soft border border-gold/30 px-4 py-3 mb-8 text-sm text-ink-soft">
+      <strong class="text-ink">Draft scaffold, not final legal text.</strong> Written to standard structure for a no-account, no-checkout affiliate site. The Admin (or a qualified professional) should review before launch, particularly the sections on hosting/analytics providers once those are finalized — DealMela is not a law firm and this isn't legal advice.
+    </div>
+
+    <div class="text-ink-soft leading-relaxed space-y-5 text-[15px] sm:text-base">
+      <h2 class="font-display text-xl font-semibold text-ink">The short version</h2>
+      <p>
+        You can browse every deal on DealMela without creating an account, logging in, or giving us your email. We don't run a checkout, so we never collect payment details, shipping addresses, or order history — that all happens on the retailer's own site once you click through.
+      </p>
+
+      <h2 class="font-display text-xl font-semibold text-ink pt-2">What we do collect</h2>
+      <p>
+        When you click a "View Deal" button, we log that a click happened on that product — nothing tied to your identity, just an anonymous count used to show honest "Trending" signals and to help us know which deals are worth keeping live. When you use search, we log the search term and how many results it returned, so we know what to add next. Standard hosting-level logs (like approximate location and browser type, common to virtually every website) may be collected by our hosting provider for security and performance purposes.
+      </p>
+
+      <h2 class="font-display text-xl font-semibold text-ink pt-2">What we don't collect</h2>
+      <p>
+        No names, no email addresses, no phone numbers, no payment information — we have no signup flow anywhere on the site to collect them through. We do not sell or share any data with third parties beyond what's operationally required to host the site.
+      </p>
+
+      <h2 class="font-display text-xl font-semibold text-ink pt-2">Cookies</h2>
+      <p>
+        DealMela does not use tracking or advertising cookies. Any cookies present are strictly functional (for example, keeping the site fast via caching) and are not used to build a profile of you across other sites.
+      </p>
+
+      <h2 class="font-display text-xl font-semibold text-ink pt-2">Third-party links</h2>
+      <p>
+        Every deal takes you to a third-party retailer (Amazon, Flipkart, or others), each with their own privacy policy that governs what happens once you leave DealMela. We'd encourage you to review theirs before completing a purchase.
+      </p>
+
+      <h2 class="font-display text-xl font-semibold text-ink pt-2">Questions</h2>
+      <p>
+        Reach out via the <a href="/contact" class="text-brick underline underline-offset-2">Contact</a> page with any privacy questions.
+      </p>
+    </div>
+  </article>
+</BaseLayout>

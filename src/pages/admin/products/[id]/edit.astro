@@ -1,0 +1,267 @@
+---
+export const prerender = false;
+import AdminLayout from '../../../../layouts/AdminLayout.astro';
+import { getCategoryTree, getProductByIdForAdmin, updateProduct, deleteProductPermanently, isSlugTaken } from '../../../../lib/queries.js';
+
+const id = Number(Astro.params.id);
+const existing = await getProductByIdForAdmin(id);
+if (!existing) return Astro.rewrite('/404');
+
+const categories = await getCategoryTree();
+let error = null;
+
+const toDateInput = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
+
+let values = {
+  name: existing.name, slug: existing.slug,
+  category_id: String(existing.category_id), subcategory_id: String(existing.subcategory_id || ''),
+  brand: existing.brand || '', source_platform: existing.source_platform,
+  source_platform_label: existing.source_platform_label || '', affiliate_link: existing.affiliate_link,
+  sku: existing.sku || '', current_price: String(existing.current_price), original_price: String(existing.original_price),
+  editorial_note: existing.editorial_note,
+  source_rating: existing.source_rating != null ? String(existing.source_rating) : '',
+  source_review_count: existing.source_review_count != null ? String(existing.source_review_count) : '',
+  rating_checked_at: toDateInput(existing.rating_checked_at),
+  status: existing.status, is_featured: existing.is_featured,
+};
+let images = Array.isArray(existing.images) ? existing.images : JSON.parse(existing.images);
+let specs = Array.isArray(existing.specs) ? existing.specs : JSON.parse(existing.specs || '[]');
+if (specs.length === 0) specs = [{ label: '', value: '' }];
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = form.get('action');
+
+  if (action === 'delete') {
+    await deleteProductPermanently(id);
+    return Astro.redirect('/admin/products');
+  }
+
+  for (const key of Object.keys(values)) {
+    if (key === 'is_featured') continue;
+    values[key] = String(form.get(key) || '').trim();
+  }
+  values.is_featured = form.get('is_featured') === 'on';
+  images = form.getAll('images[]').map((v) => String(v).trim()).filter(Boolean);
+  const specLabels = form.getAll('spec_label[]');
+  const specValues = form.getAll('spec_value[]');
+  specs = specLabels.map((l, i) => ({ label: String(l).trim(), value: String(specValues[i] || '').trim() })).filter((s) => s.label && s.value);
+  if (specs.length === 0) specs = [{ label: '', value: '' }];
+
+  const slug = values.slug || values.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const currentPrice = Number(values.current_price);
+  const originalPrice = Number(values.original_price);
+
+  if (!values.name) error = 'Product name is required.';
+  else if (!values.category_id) error = 'Choose a category.';
+  else if (!values.subcategory_id) error = 'Choose a subcategory.';
+  else if (!values.affiliate_link) error = 'Affiliate link is required.';
+  else if (!Number.isFinite(currentPrice) || currentPrice <= 0) error = 'Enter a valid current price.';
+  else if (!Number.isFinite(originalPrice) || originalPrice <= 0) error = 'Enter a valid original price.';
+  else if (currentPrice > originalPrice) error = 'Current price is higher than original price — check the numbers.';
+  else if (images.length < 3) error = 'Add at least 3 image URLs.';
+  else if (!values.editorial_note || values.editorial_note.length < 20) error = 'Write a real "why we picked this" note.';
+  else if (await isSlugTaken(slug, id)) error = `The URL slug "${slug}" is already used by another product.`;
+
+  if (!error) {
+    await updateProduct(id, {
+      ...values,
+      slug,
+      category_id: Number(values.category_id),
+      subcategory_id: Number(values.subcategory_id),
+      current_price: currentPrice,
+      original_price: originalPrice,
+      images,
+      specs,
+      source_rating: values.source_rating ? Number(values.source_rating) : null,
+      source_review_count: values.source_review_count ? Number(values.source_review_count) : null,
+      rating_checked_at: values.rating_checked_at || null,
+    });
+    return Astro.redirect('/admin/products');
+  }
+  values.slug = slug;
+}
+
+const categoryTreeJson = JSON.stringify(categories.map((c) => ({
+  id: c.id, name: c.name,
+  subcategories: c.subcategories.map((s) => ({ id: s.id, name: s.name })),
+})));
+---
+
+<AdminLayout title={`Edit — ${existing.name}`}>
+  <a href="/admin/products" class="text-sm text-ink-soft hover:text-brick mb-4 inline-block">← Back to products</a>
+  <div class="flex items-center justify-between mb-6 gap-3 flex-wrap">
+    <h1 class="text-2xl font-display font-semibold">Edit deal</h1>
+  </div>
+
+  {error && (
+    <div class="mb-5 rounded-lg bg-brick/10 border border-brick/30 text-brick text-sm px-4 py-2.5">{error}</div>
+  )}
+
+  <form
+    method="POST"
+    x-data={`{
+      categories: ${categoryTreeJson},
+      categoryId: '${values.category_id}',
+      images: ${JSON.stringify(images)},
+      specs: ${JSON.stringify(specs)},
+      platform: '${values.source_platform}',
+      get subcats() { return (this.categories.find(c => String(c.id) === String(this.categoryId)) || {}).subcategories || [] },
+      addImage() { this.images.push('') },
+      removeImage(i) { if (this.images.length > 3) this.images.splice(i, 1) },
+      addSpec() { this.specs.push({label:'', value:''}) },
+      removeSpec(i) { this.specs.splice(i, 1) }
+    }`}
+    class="flex flex-col gap-6 max-w-2xl"
+  >
+    <section class="flex flex-col gap-3.5">
+      <h2 class="text-xs font-bold text-ink-faint uppercase tracking-wide">Basics</h2>
+      <div>
+        <label class="text-xs font-semibold text-ink-soft">Product name</label>
+        <input name="name" required value={values.name} class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-ink-soft">URL slug</label>
+        <input name="slug" value={values.slug} class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brick/40" />
+        <p class="text-xs text-ink-faint mt-1">Changing this changes the product's live URL — old links will 301-redirect if you only change category/subcategory, but not if you change this.</p>
+      </div>
+      <div class="grid grid-cols-2 gap-3.5">
+        <div>
+          <label class="text-xs font-semibold text-ink-soft">Category</label>
+          <select name="category_id" x-model="categoryId" required class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40">
+            <option value="">Choose…</option>
+            <template x-for="c in categories" :key="c.id">
+              <option :value="c.id" x-text="c.name" :selected="String(c.id) === categoryId"></option>
+            </template>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-ink-soft">Subcategory</label>
+          <select name="subcategory_id" required class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40">
+            <option value="">Choose…</option>
+            <template x-for="s in subcats" :key="s.id">
+              <option :value="s.id" x-text="s.name" :selected="String(s.id) === '${values.subcategory_id}'"></option>
+            </template>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-ink-soft">Brand (optional)</label>
+        <input name="brand" value={values.brand} class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-3.5">
+      <h2 class="text-xs font-bold text-ink-faint uppercase tracking-wide">Retailer &amp; link</h2>
+      <div class="grid grid-cols-2 gap-3.5">
+        <div>
+          <label class="text-xs font-semibold text-ink-soft">Source platform</label>
+          <select name="source_platform" x-model="platform" class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40">
+            <option value="amazon" selected={values.source_platform === 'amazon'}>Amazon</option>
+            <option value="flipkart" selected={values.source_platform === 'flipkart'}>Flipkart</option>
+            <option value="other" selected={values.source_platform === 'other'}>Other</option>
+          </select>
+        </div>
+        <div x-show="platform === 'other'" x-cloak>
+          <label class="text-xs font-semibold text-ink-soft">Retailer name</label>
+          <input name="source_platform_label" value={values.source_platform_label} class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-ink-soft">Affiliate link</label>
+        <input name="affiliate_link" type="url" required value={values.affiliate_link} class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-ink-soft">SKU (optional)</label>
+        <input name="sku" value={values.sku} class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-3.5">
+      <h2 class="text-xs font-bold text-ink-faint uppercase tracking-wide">Pricing</h2>
+      <div class="grid grid-cols-2 gap-3.5">
+        <div>
+          <label class="text-xs font-semibold text-ink-soft">Current price (₹)</label>
+          <input name="current_price" type="number" step="0.01" min="0" required value={values.current_price} class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-ink-soft">Original price (₹)</label>
+          <input name="original_price" type="number" step="0.01" min="0" required value={values.original_price} class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+        </div>
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-xs font-bold text-ink-faint uppercase tracking-wide">Images (minimum 3)</h2>
+      <template x-for="(img, i) in images" :key="i">
+        <div class="flex gap-2">
+          <input :name="'images[]'" x-model="images[i]" class="flex-1 rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+          <button type="button" @click="removeImage(i)" x-show="images.length > 3" class="text-ink-faint hover:text-brick px-2">✕</button>
+        </div>
+      </template>
+      <button type="button" @click="addImage()" class="self-start text-xs font-semibold text-brick underline underline-offset-2">+ Add another image</button>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-xs font-bold text-ink-faint uppercase tracking-wide">Specs</h2>
+      <template x-for="(spec, i) in specs" :key="i">
+        <div class="flex gap-2">
+          <input :name="'spec_label[]'" x-model="spec.label" class="w-1/3 rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+          <input :name="'spec_value[]'" x-model="spec.value" class="flex-1 rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+          <button type="button" @click="removeSpec(i)" class="text-ink-faint hover:text-brick px-2">✕</button>
+        </div>
+      </template>
+      <button type="button" @click="addSpec()" class="self-start text-xs font-semibold text-brick underline underline-offset-2">+ Add another spec</button>
+    </section>
+
+    <section class="flex flex-col gap-3.5">
+      <h2 class="text-xs font-bold text-ink-faint uppercase tracking-wide">Why we picked this</h2>
+      <textarea name="editorial_note" required rows="4" class="w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40">{values.editorial_note}</textarea>
+    </section>
+
+    <section class="flex flex-col gap-3.5">
+      <h2 class="text-xs font-bold text-ink-faint uppercase tracking-wide">Sourced rating (optional)</h2>
+      <div class="grid grid-cols-3 gap-3.5">
+        <div>
+          <label class="text-xs font-semibold text-ink-soft">Rating (0–5)</label>
+          <input name="source_rating" type="number" step="0.1" min="0" max="5" value={values.source_rating} class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-ink-soft">Review count</label>
+          <input name="source_review_count" type="number" min="0" value={values.source_review_count} class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-ink-soft">As of date</label>
+          <input name="rating_checked_at" type="date" value={values.rating_checked_at} class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+        </div>
+      </div>
+    </section>
+
+    <section class="flex items-center gap-6">
+      <div>
+        <label class="text-xs font-semibold text-ink-soft block mb-1">Status</label>
+        <select name="status" class="rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40">
+          <option value="active" selected={values.status === 'active'}>Active (visible on site)</option>
+          <option value="inactive" selected={values.status === 'inactive'}>Inactive (hidden)</option>
+          <option value="expired" selected={values.status === 'expired'}>Expired (hidden, kept for records)</option>
+        </select>
+      </div>
+      <label class="flex items-center gap-2 text-sm mt-5">
+        <input type="checkbox" name="is_featured" checked={values.is_featured} class="rounded border-line" />
+        Editor's Pick
+      </label>
+    </section>
+
+    <div class="flex items-center justify-between pt-2">
+      <div class="flex gap-3">
+        <button type="submit" class="rounded-full bg-brick text-white font-semibold text-sm px-6 py-2.5 hover:bg-brick-dark transition-colors">Save changes</button>
+        <a href="/admin/products" class="rounded-full border border-line text-ink-soft text-sm px-6 py-2.5 hover:border-ink transition-colors">Cancel</a>
+      </div>
+    </div>
+  </form>
+
+  <form method="POST" class="mt-10 pt-6 border-t border-line" onsubmit="return confirm('Permanently delete this product? This also removes its click history and cannot be undone.')">
+    <input type="hidden" name="action" value="delete" />
+    <button type="submit" class="text-sm text-red-700 hover:underline">Permanently delete this product</button>
+  </form>
+</AdminLayout>

@@ -1,0 +1,52 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ProductGrid from '../components/ProductGrid.astro';
+import ProductRail from '../components/ProductRail.astro';
+import { searchProducts, logSearchQuery, getTrendingProducts } from '../lib/queries.js';
+
+const q = (Astro.url.searchParams.get('q') || '').trim();
+let products = [];
+let total = 0;
+let trending = [];
+
+if (q) {
+  const result = await searchProducts(q, { limit: 24, offset: 0 });
+  products = result.products;
+  total = result.total;
+  // Logged server-side on every search, including zero-result ones (Section 5.4) —
+  // this becomes the Admin's best signal for what to add next.
+  await logSearchQuery(q, total).catch(() => {});
+  if (total === 0) {
+    trending = await getTrendingProducts({ days: 7, limit: 10 });
+  }
+}
+---
+
+<BaseLayout
+  title={q ? `Search: ${q}` : 'Search'}
+  description="Search DealMela's curated catalogue of verified Amazon, Flipkart and retailer deals."
+>
+  <section class="mx-auto max-w-6xl px-4 sm:px-6 pt-6 sm:pt-8 pb-16">
+    {q ? (
+      <>
+        <h1 class="font-display text-xl sm:text-2xl font-semibold text-ink mb-1">
+          {total > 0 ? `Results for "${q}"` : `No exact match for "${q}"`}
+        </h1>
+        {total > 0 && <p class="text-sm text-ink-faint mb-6">{total} deal{total === 1 ? '' : 's'} found</p>}
+
+        {total > 0 ? (
+          <ProductGrid products={products} />
+        ) : (
+          <div class="mt-6">
+            <p class="text-sm text-ink-soft mb-6">Here's what's trending across DealMela instead:</p>
+            <ProductRail products={trending} eager={true} />
+          </div>
+        )}
+      </>
+    ) : (
+      <div class="text-center py-16">
+        <p class="text-ink-soft">Search for a product name, brand, or keyword above.</p>
+      </div>
+    )}
+  </section>
+</BaseLayout>

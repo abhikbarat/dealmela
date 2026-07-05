@@ -1,0 +1,52 @@
+---
+interface Props {
+  currentSort?: string;
+  currentPlatform?: string;
+  currentDiscount?: string;
+  currentMin?: string;
+  currentMax?: string;
+}
+const {
+  currentSort = 'newest',
+  currentPlatform = '',
+  currentDiscount = '',
+  currentMin = '',
+  currentMax = '',
+} = Astro.props;
+---
+
+<form method="get" class="flex flex-wrap gap-2.5 items-center" id="filter-form">
+  <select name="sort" class="text-xs sm:text-sm rounded-full border border-line bg-white px-3 py-2 text-ink" onchange="this.form.submit()">
+    <option value="newest" selected={currentSort === 'newest'}>Newest first</option>
+    <option value="discount" selected={currentSort === 'discount'}>Highest discount</option>
+    <option value="price_low" selected={currentSort === 'price_low'}>Price: low to high</option>
+    <option value="price_high" selected={currentSort === 'price_high'}>Price: high to low</option>
+  </select>
+
+  <select name="platform" class="text-xs sm:text-sm rounded-full border border-line bg-white px-3 py-2 text-ink" onchange="this.form.submit()">
+    <option value="" selected={currentPlatform === ''}>All retailers</option>
+    <option value="amazon" selected={currentPlatform === 'amazon'}>Amazon</option>
+    <option value="flipkart" selected={currentPlatform === 'flipkart'}>Flipkart</option>
+    <option value="other" selected={currentPlatform === 'other'}>Other</option>
+  </select>
+
+  <select name="discount" class="text-xs sm:text-sm rounded-full border border-line bg-white px-3 py-2 text-ink" onchange="this.form.submit()">
+    <option value="" selected={currentDiscount === ''}>Any discount</option>
+    <option value="10" selected={currentDiscount === '10'}>10% off or more</option>
+    <option value="25" selected={currentDiscount === '25'}>25% off or more</option>
+    <option value="40" selected={currentDiscount === '40'}>40% off or more</option>
+    <option value="60" selected={currentDiscount === '60'}>60% off or more</option>
+  </select>
+
+  <div class="flex items-center gap-1.5 text-xs sm:text-sm text-ink-soft">
+    <span>₹</span>
+    <input type="number" name="min" placeholder="Min" value={currentMin} min="0" class="w-16 rounded-full border border-line bg-white px-2.5 py-2 text-ink" />
+    <span class="text-ink-faint">–</span>
+    <input type="number" name="max" placeholder="Max" value={currentMax} min="0" class="w-16 rounded-full border border-line bg-white px-2.5 py-2 text-ink" />
+    <button type="submit" class="rounded-full bg-ink text-paper px-3 py-2 font-semibold hover:bg-ink/85 transition-colors">Go</button>
+  </div>
+
+  {(currentPlatform || currentDiscount || currentMin || currentMax || currentSort !== 'newest') && (
+    <a href="?" class="text-xs text-brick underline underline-offset-2">Clear filters</a>
+  )}
+</form>

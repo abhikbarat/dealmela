@@ -1,0 +1,17 @@
+---
+import ProductCard from './ProductCard.astro';
+
+interface Props {
+  products: Record<string, any>[];
+  eager?: boolean;
+}
+const { products, eager = false } = Astro.props;
+---
+
+<div class="scroll-rail -mx-4 sm:mx-0 px-4 sm:px-0 flex gap-3.5 sm:gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
+  {products.map((product) => (
+    <div class="w-[46vw] sm:w-56 shrink-0 snap-start">
+      <ProductCard product={product} eager={eager} />
+    </div>
+  ))}
+</div>

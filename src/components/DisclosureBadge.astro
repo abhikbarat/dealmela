@@ -1,0 +1,14 @@
+---
+interface Props {
+  variant?: 'cta' | 'card';
+}
+const { variant = 'cta' } = Astro.props;
+---
+
+{variant === 'cta' ? (
+  <p class="text-xs text-ink-faint">Ad · This site earns a commission from qualifying purchases</p>
+) : (
+  <span class="inline-flex items-center rounded-full bg-ink/80 text-paper text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5">
+    Ad
+  </span>
+)}

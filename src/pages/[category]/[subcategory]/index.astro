@@ -1,0 +1,89 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ProductGrid from '../../../components/ProductGrid.astro';
+import FilterBar from '../../../components/FilterBar.astro';
+import InfiniteScroll from '../../../components/InfiniteScroll.astro';
+import { getCategoryBySlug, getSubcategoryBySlug, getCategoryTree, getProductsByCategory } from '../../../lib/queries.js';
+
+const { category: categorySlug, subcategory: subcategorySlug } = Astro.params;
+const category = await getCategoryBySlug(categorySlug);
+if (!category) return Astro.rewrite('/404');
+
+const subcategory = await getSubcategoryBySlug(category.id, subcategorySlug);
+if (!subcategory) return Astro.rewrite('/404');
+
+const tree = await getCategoryTree();
+const siblingSubs = tree.find((c) => c.id === category.id)?.subcategories || [];
+
+const params = Astro.url.searchParams;
+const sort = params.get('sort') || 'newest';
+const platform = params.get('platform') || null;
+const priceMin = params.get('min') ? Number(params.get('min')) : null;
+const priceMax = params.get('max') ? Number(params.get('max')) : null;
+const minDiscount = params.get('discount') ? Number(params.get('discount')) : null;
+
+const { products, total } = await getProductsByCategory({
+  categoryId: category.id,
+  subcategoryId: subcategory.id,
+  sort,
+  platform,
+  priceMin,
+  priceMax,
+  minDiscount,
+  limit: 12,
+  offset: 0,
+});
+
+const queryString = params.toString();
+---
+
+<BaseLayout
+  title={`${subcategory.name} — ${category.name}`}
+  description={`Verified ${subcategory.name} deals from Amazon, Flipkart and more — updated regularly, no fake discounts.`}
+>
+  <div id="top"></div>
+  <section class="mx-auto max-w-6xl px-4 sm:px-6 pt-6 sm:pt-8">
+    <nav class="text-xs text-ink-faint mb-2" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-brick">Home</a> <span class="mx-1">/</span>
+      <a href={`/${category.slug}`} class="hover:text-brick">{category.name}</a> <span class="mx-1">/</span>
+      <span class="text-ink">{subcategory.name}</span>
+    </nav>
+    <h1 class="font-display text-2xl sm:text-3xl font-semibold text-ink">{subcategory.name}</h1>
+
+    {siblingSubs.length > 1 && (
+      <div class="flex flex-wrap gap-2 mt-4">
+        {siblingSubs.map((sub) => (
+          <a
+            href={`/${category.slug}/${sub.slug}`}
+            class:list={[
+              'text-xs sm:text-sm rounded-full border px-3.5 py-1.5 transition-colors',
+              sub.id === subcategory.id
+                ? 'border-brick bg-brick text-white'
+                : 'border-line bg-white text-ink-soft hover:border-gold hover:text-ink',
+            ]}
+          >
+            {sub.name}
+          </a>
+        ))}
+      </div>
+    )}
+
+    <div class="mt-6 pb-5 border-b border-line">
+      <FilterBar currentSort={sort} currentPlatform={platform || ''} currentDiscount={minDiscount ? String(minDiscount) : ''} currentMin={priceMin ? String(priceMin) : ''} currentMax={priceMax ? String(priceMax) : ''} />
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 sm:px-6 pt-6 pb-16">
+    {products.length > 0 ? (
+      <>
+        <ProductGrid products={products} id="product-grid" />
+        <InfiniteScroll categoryId={category.id} subcategoryId={subcategory.id} initialCount={products.length} total={total} queryString={queryString} />
+      </>
+    ) : (
+      <div class="text-center py-16">
+        <p class="text-ink-soft">No deals match those filters right now.</p>
+        <a href={`/${category.slug}/${subcategory.slug}`} class="mt-3 inline-block text-sm text-brick underline underline-offset-2">Clear filters</a>
+      </div>
+    )}
+  </section>
+</BaseLayout>

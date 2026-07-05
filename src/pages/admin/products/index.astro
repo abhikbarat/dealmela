@@ -1,0 +1,104 @@
+---
+export const prerender = false;
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getAllProductsForAdmin, touchPriceVerified } from '../../../lib/queries.js';
+import { formatPrice, formatRelativeTime } from '../../../lib/format.js';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = form.get('action');
+  const id = Number(form.get('id'));
+  if (action === 'verify_price' && id) {
+    await touchPriceVerified(id);
+  }
+  return Astro.redirect('/admin/products');
+}
+
+const all = await getAllProductsForAdmin();
+const filter = Astro.url.searchParams.get('status') || 'all';
+const products = filter === 'all' ? all : all.filter((p) => p.status === filter);
+
+const statusStyles = {
+  active: 'bg-green-100 text-green-800',
+  inactive: 'bg-gray-200 text-gray-700',
+  expired: 'bg-red-100 text-red-700',
+};
+
+const counts = {
+  all: all.length,
+  active: all.filter((p) => p.status === 'active').length,
+  inactive: all.filter((p) => p.status === 'inactive').length,
+  expired: all.filter((p) => p.status === 'expired').length,
+};
+---
+
+<AdminLayout title="Products">
+  <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+    <h1 class="text-2xl font-display font-semibold">Products</h1>
+    <a href="/admin/products/new" class="rounded-full bg-brick text-white text-sm font-semibold px-4 py-2 hover:bg-brick-dark transition-colors">
+      + Add product
+    </a>
+  </div>
+
+  <div class="flex gap-2 mb-5 text-sm">
+    {['all', 'active', 'inactive', 'expired'].map((s) => (
+      <a
+        href={`/admin/products?status=${s}`}
+        class:list={[
+          'px-3 py-1.5 rounded-full border transition-colors capitalize',
+          filter === s ? 'bg-ink text-white border-ink' : 'border-line text-ink-soft hover:border-ink',
+        ]}
+      >
+        {s} ({counts[s]})
+      </a>
+    ))}
+  </div>
+
+  {products.length === 0 ? (
+    <p class="text-ink-soft text-sm py-10 text-center">No products in this view yet.</p>
+  ) : (
+    <div class="rounded-xl border border-line overflow-hidden bg-white">
+      <table class="w-full text-sm">
+        <thead class="bg-paper-warm text-left text-xs text-ink-faint uppercase tracking-wide">
+          <tr>
+            <th class="px-4 py-2.5 font-semibold">Product</th>
+            <th class="px-4 py-2.5 font-semibold hidden sm:table-cell">Category</th>
+            <th class="px-4 py-2.5 font-semibold">Price</th>
+            <th class="px-4 py-2.5 font-semibold">Status</th>
+            <th class="px-4 py-2.5 font-semibold hidden md:table-cell">Price checked</th>
+            <th class="px-4 py-2.5 font-semibold"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {products.map((p) => {
+            const images = Array.isArray(p.images) ? p.images : JSON.parse(p.images);
+            return (
+              <tr class="border-t border-line align-middle">
+                <td class="px-4 py-2.5">
+                  <a href={`/admin/products/${p.id}/edit`} class="flex items-center gap-2.5 hover:text-brick">
+                    <img src={images[0]} alt="" class="w-9 h-9 rounded-md object-cover border border-line shrink-0" />
+                    <span class="font-medium line-clamp-1">{p.name}{p.is_featured && <span class="ml-1.5 text-[10px] text-gold-dark">★</span>}</span>
+                  </a>
+                </td>
+                <td class="px-4 py-2.5 text-ink-soft hidden sm:table-cell">{p.subcategory_name || p.category_name}</td>
+                <td class="px-4 py-2.5 tabular-nums">{formatPrice(p.current_price)}</td>
+                <td class="px-4 py-2.5">
+                  <span class:list={['text-xs font-semibold px-2 py-0.5 rounded-full', statusStyles[p.status]]}>{p.status}</span>
+                </td>
+                <td class="px-4 py-2.5 text-ink-faint text-xs hidden md:table-cell">{formatRelativeTime(p.price_last_verified)}</td>
+                <td class="px-4 py-2.5 text-right whitespace-nowrap">
+                  <form method="POST" class="inline">
+                    <input type="hidden" name="action" value="verify_price" />
+                    <input type="hidden" name="id" value={p.id} />
+                    <button type="submit" class="text-xs text-ink-faint hover:text-brick underline underline-offset-2 mr-3">Mark verified</button>
+                  </form>
+                  <a href={`/admin/products/${p.id}/edit`} class="text-xs text-brick font-semibold underline underline-offset-2">Edit</a>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  )}
+</AdminLayout>

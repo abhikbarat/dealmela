@@ -1,0 +1,36 @@
+---
+const year = new Date().getFullYear();
+const links = [
+  { href: '/about', label: 'About' },
+  { href: '/affiliate-disclosure', label: 'Affiliate Disclosure' },
+  { href: '/privacy-policy', label: 'Privacy Policy' },
+  { href: '/contact', label: 'Contact' },
+];
+---
+
+<footer class="mt-16 border-t border-line bg-paper-warm">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 py-10">
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-8">
+      <div class="max-w-sm">
+        <span class="font-display text-lg font-semibold text-ink">Deal<span class="text-brick">Mela</span></span>
+        <p class="mt-2 text-sm text-ink-soft leading-relaxed">
+          Handpicked deals from across the web. We link out to the retailer for every purchase — DealMela never sells anything directly.
+        </p>
+      </div>
+
+      <nav aria-label="Footer">
+        <ul class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+          {links.map((l) => (
+            <li><a href={l.href} class="text-ink-soft hover:text-brick transition-colors">{l.label}</a></li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+
+    <div class="mt-8 pt-6 border-t border-line/70 flex flex-col gap-2 text-xs text-ink-faint">
+      <p>As an Amazon Associate I earn from qualifying purchases.</p>
+      <p>DealMela may also earn a commission from Flipkart and other retail partners when you buy through links on this site, at no extra cost to you. See our <a href="/affiliate-disclosure" class="underline hover:text-brick">Affiliate Disclosure</a> for details.</p>
+      <p class="pt-2">© {year} DealMela. All product prices and availability are accurate as of the date indicated and are subject to change.</p>
+    </div>
+  </div>
+</footer>

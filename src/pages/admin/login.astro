@@ -1,0 +1,112 @@
+---
+export const prerender = false;
+import { countAdminUsers, getAdminUserByEmail, createAdminUser } from '../../lib/queries.js';
+import { hashPassword, verifyPassword, validatePassword } from '../../lib/auth.js';
+
+const existingAdminId = await Astro.session.get('adminId');
+if (existingAdminId) {
+  return Astro.redirect('/admin/products');
+}
+
+const adminCount = await countAdminUsers();
+const isSetup = adminCount === 0;
+let error = null;
+let emailValue = isSetup ? (import.meta.env.ADMIN_EMAIL || '') : '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const email = String(form.get('email') || '').trim();
+  const password = String(form.get('password') || '');
+
+  if (isSetup) {
+    const confirm = String(form.get('confirm') || '');
+    const pwError = validatePassword(password);
+    emailValue = email;
+    if (!email || !email.includes('@')) {
+      error = 'Enter a valid email address.';
+    } else if (pwError) {
+      error = pwError;
+    } else if (password !== confirm) {
+      error = "Passwords don't match.";
+    } else {
+      const hash = await hashPassword(password);
+      const id = await createAdminUser(email, hash);
+      await Astro.session.set('adminId', id);
+      return Astro.redirect('/admin/products');
+    }
+  } else {
+    const user = await getAdminUserByEmail(email);
+    const ok = user && (await verifyPassword(password, user.password_hash));
+    if (!ok) {
+      error = 'Incorrect email or password.';
+    } else {
+      await Astro.session.set('adminId', user.id);
+      return Astro.redirect('/admin/products');
+    }
+  }
+}
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{isSetup ? 'Set up admin account' : 'Admin login'} · DealMela</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      @import "tailwindcss";
+      @theme {
+        --color-paper: #fff8ef; --color-ink: #241708; --color-ink-soft: #6b5842;
+        --color-brick: #a32c1e; --color-brick-dark: #7e2116; --color-line: #e8dcc8;
+        --font-display: "Fraunces", serif; --font-body: "Manrope", sans-serif;
+      }
+      body { font-family: var(--font-body); }
+      h1 { font-family: var(--font-display); }
+    </style>
+  </head>
+  <body class="bg-paper text-ink min-h-screen flex items-center justify-center px-4">
+    <div class="w-full max-w-sm">
+      <h1 class="text-2xl font-semibold text-center mb-1">Deal<span class="text-brick">Mela</span></h1>
+      <p class="text-center text-sm text-ink-soft mb-8">
+        {isSetup ? 'Create the admin account for this site' : 'Admin sign in'}
+      </p>
+
+      {error && (
+        <div class="mb-4 rounded-lg bg-brick/10 border border-brick/30 text-brick text-sm px-3.5 py-2.5">{error}</div>
+      )}
+
+      {isSetup && (
+        <div class="mb-5 rounded-lg bg-amber-50 border border-line text-xs text-ink-soft px-3.5 py-2.5">
+          No admin account exists yet — this form only appears once. Whatever you set here becomes the one login for this site.
+        </div>
+      )}
+
+      <form method="POST" class="flex flex-col gap-3.5">
+        <div>
+          <label class="text-xs font-semibold text-ink-soft" for="email">Email</label>
+          <input id="email" name="email" type="email" value={emailValue} required autofocus
+            class="mt-1 w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40 focus:border-brick" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-ink-soft" for="password">Password</label>
+          <input id="password" name="password" type="password" required minlength="8"
+            class="mt-1 w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40 focus:border-brick" />
+        </div>
+        {isSetup && (
+          <div>
+            <label class="text-xs font-semibold text-ink-soft" for="confirm">Confirm password</label>
+            <input id="confirm" name="confirm" type="password" required minlength="8"
+              class="mt-1 w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40 focus:border-brick" />
+          </div>
+        )}
+        <button type="submit" class="mt-2 rounded-full bg-brick text-white font-semibold text-sm py-2.5 hover:bg-brick-dark transition-colors">
+          {isSetup ? 'Create admin account' : 'Sign in'}
+        </button>
+      </form>
+    </div>
+  </body>
+</html>

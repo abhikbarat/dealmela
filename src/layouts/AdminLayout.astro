@@ -1,0 +1,51 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+const path = Astro.url.pathname;
+
+const navItems = [
+  { href: '/admin/products', label: 'Products' },
+  { href: '/admin/analytics', label: 'Analytics' },
+];
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} · DealMela Admin</title>
+  </head>
+  <body class="bg-paper-warm text-ink min-h-screen">
+    <div class="flex flex-col lg:flex-row min-h-screen">
+      <aside class="lg:w-56 shrink-0 bg-ink text-paper flex lg:flex-col justify-between lg:justify-start px-4 py-3 lg:py-6 lg:px-5">
+        <a href="/admin/products" class="font-display text-lg font-semibold">Deal<span class="text-marigold">Mela</span></a>
+        <nav class="flex lg:flex-col gap-1 lg:mt-8 lg:gap-1">
+          {navItems.map((item) => (
+            <a
+              href={item.href}
+              class:list={[
+                'text-sm px-3 py-2 rounded-lg transition-colors',
+                path.startsWith(item.href) ? 'bg-white/15 text-white font-semibold' : 'text-paper/70 hover:text-white hover:bg-white/10',
+              ]}
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
+        <form method="POST" action="/admin/logout" class="lg:mt-auto">
+          <button type="submit" class="text-sm text-paper/70 hover:text-white transition-colors px-3 py-2">Log out →</button>
+        </form>
+      </aside>
+
+      <main class="flex-1 px-4 sm:px-8 py-6 sm:py-10 max-w-5xl">
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

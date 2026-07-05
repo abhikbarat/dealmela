@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ProductRail from '../components/ProductRail.astro';
+import { getTrendingProducts } from '../lib/queries.js';
+
+Astro.response.status = 404;
+const trending = await getTrendingProducts({ days: 7, limit: 8 });
+---
+
+<BaseLayout title="Page not found" description="This page doesn't exist — but here's what's trending right now.">
+  <section class="mx-auto max-w-6xl px-4 sm:px-6 pt-16 sm:pt-24 pb-16 text-center">
+    <p class="font-display text-6xl font-bold text-gold-soft">404</p>
+    <h1 class="font-display text-2xl font-semibold text-ink mt-2">That deal's gone, or never existed</h1>
+    <p class="text-ink-soft mt-2">The link may be old, or the listing was retired. Here's what's trending instead:</p>
+    <a href="/" class="inline-block mt-5 text-sm text-brick underline underline-offset-2">Back to home</a>
+  </section>
+
+  {trending.length > 0 && (
+    <section class="mx-auto max-w-6xl px-4 sm:px-6 pb-16">
+      <ProductRail products={trending} eager={true} />
+    </section>
+  )}
+</BaseLayout>

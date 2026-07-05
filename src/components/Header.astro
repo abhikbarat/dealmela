@@ -1,0 +1,29 @@
+---
+const q = Astro.url.searchParams.get('q') ?? '';
+---
+
+<header class="sticky top-0 z-30 bg-paper/95 backdrop-blur border-b border-line">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-6">
+    <a href="/" class="shrink-0 flex items-center gap-1.5 group" aria-label="DealMela home">
+      <span class="font-display text-xl sm:text-2xl font-semibold tracking-tight text-ink">Deal<span class="text-brick">Mela</span></span>
+    </a>
+
+    <form action="/search" method="get" class="flex-1 min-w-0">
+      <label for="site-search" class="sr-only">Search deals</label>
+      <div class="relative">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-ink-faint" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" />
+        </svg>
+        <input
+          id="site-search"
+          type="search"
+          name="q"
+          value={q}
+          placeholder="Search for a deal…"
+          class="w-full rounded-full border border-line bg-white/70 py-2.5 pl-10 pr-4 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-brick/40 focus:border-brick transition"
+        />
+      </div>
+    </form>
+  </div>
+</header>

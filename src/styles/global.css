@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+/* ============================================================
+   DESIGN TOKENS
+   Palette reads "Indian festive market" — marigold, brick-red rangoli,
+   old gold — kept to a tight, disciplined set so it stays premium
+   rather than gaudy. Price/discount always gets the boldest of these.
+   ============================================================ */
+@theme {
+  --color-paper: #fff8ef;
+  --color-paper-warm: #fbefd9;
+  --color-ink: #241708;
+  --color-ink-soft: #6b5842;
+  --color-ink-faint: #a6957e;
+  --color-line: #e8dcc8;
+
+  --color-brick: #a32c1e;
+  --color-brick-dark: #7e2116;
+  --color-brick-soft: #f6ddd8;
+
+  --color-gold: #b8802a;
+  --color-gold-dark: #8f6420;
+  --color-gold-soft: #f3e2c2;
+
+  --color-marigold: #e67e22;
+  --color-marigold-dark: #c2650f;
+  --color-marigold-soft: #fbe3cc;
+
+  --font-display: "Fraunces", "Iowan Old Style", ui-serif, Georgia, serif;
+  --font-body: "Manrope", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+@layer base {
+  html {
+    background: var(--color-paper);
+    color: var(--color-ink);
+  }
+  body {
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+  }
+  ::selection {
+    background: var(--color-gold-soft);
+    color: var(--color-ink);
+  }
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--color-brick);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line);
+    border-radius: 999px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Hide scrollbar for horizontally-scrolling rails (category tiles, trending)
+   while keeping the element natively scrollable/swipeable on touch. */
+.scroll-rail {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scroll-rail::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================================
+   SIGNATURE ELEMENT — the "you save ₹X" ticket-stub badge.
+   A die-cut / torn-ticket silhouette (small circular notches on the
+   left+right edges) — evokes a festival-mela price tag, and gives the
+   savings figure a shape distinct from an ordinary rounded pill, which
+   is the whole point since Section 3 lever 1 says this number should
+   visually dominate the card.
+   ============================================================ */
+.savings-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  background: var(--color-brick);
+  color: #fff8ef;
+  font-family: var(--font-body);
+  font-weight: 800;
+  clip-path: polygon(
+    6px 0%, 100% 0%, 100% 100%, 6px 100%,
+    6px calc(50% + 6px), 0% 50%, 6px calc(50% - 6px)
+  );
+  padding-left: 14px;
+}
+
+/* ============================================================
+   FESTIVE BANNER — CSS-animated (never a static image, Section 5.1).
+   A slow diagonal shimmer sweep + gently drifting soft dots, evoking
+   string-lights / diyas without literal clip-art. Respects reduced-motion
+   via the base-layer rule above.
+   ============================================================ */
+@keyframes banner-shimmer {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes drift-1 {
+  0%, 100% { transform: translate(0, 0); opacity: 0.55; }
+  50%      { transform: translate(10px, -14px); opacity: 0.9; }
+}
+@keyframes drift-2 {
+  0%, 100% { transform: translate(0, 0); opacity: 0.4; }
+  50%      { transform: translate(-14px, -8px); opacity: 0.75; }
+}
+.banner-shimmer-bg {
+  background-size: 260% 100%;
+  animation: banner-shimmer 9s ease-in-out infinite alternate;
+}
+.banner-dot-a { animation: drift-1 6s ease-in-out infinite; }
+.banner-dot-b { animation: drift-2 7.5s ease-in-out infinite; }
+
+/* Tabular numerals for prices so digits don't jitter in width as they update. */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

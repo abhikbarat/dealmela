@@ -1,0 +1,77 @@
+---
+interface Props {
+  categoryId: number;
+  subcategoryId?: number | null;
+  initialCount: number;
+  total: number;
+  queryString: string;
+}
+const { categoryId, subcategoryId = null, initialCount, total, queryString } = Astro.props;
+---
+
+<div
+  x-data={`{
+    offset: ${initialCount},
+    total: ${total},
+    loading: false,
+    hasMore: ${initialCount < total},
+    async loadMore() {
+      if (this.loading || !this.hasMore) return;
+      this.loading = true;
+      const params = new URLSearchParams(${JSON.stringify(queryString)});
+      params.set('categoryId', '${categoryId}');
+      ${subcategoryId ? `params.set('subcategoryId', '${subcategoryId}');` : ''}
+      params.set('offset', String(this.offset));
+      const res = await fetch('/api/products?' + params.toString());
+      const data = await res.json();
+      const grid = document.getElementById('product-grid');
+      for (const p of data.products) {
+        const href = '/' + p.category_slug + '/' + p.subcategory_slug + '/' + p.slug;
+        const card = document.createElement('a');
+        card.href = href;
+        card.className = 'group block rounded-2xl border border-line bg-white/60 overflow-hidden transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-ink/5 hover:border-gold/50';
+        card.innerHTML =
+          '<div class="relative aspect-square bg-paper-warm overflow-hidden">' +
+            '<img src="' + p.image + '" alt="' + p.name.replace(/"/g,'&quot;') + '" loading="lazy" decoding="async" width="600" height="600" class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" />' +
+            '<span class="absolute top-2 left-2 inline-flex items-center rounded-full bg-ink/80 text-paper text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5">Ad</span>' +
+            (p.is_featured ? '<span class="absolute top-2 right-2 inline-flex items-center rounded-full bg-gold text-white text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 shadow-sm">Editor\\u2019s Pick</span>' : '') +
+            '<div class="absolute bottom-2 left-2"><span class="inline-flex items-center rounded-md text-[11px] font-semibold px-2 py-1 tracking-wide ' + (p.platform.key === 'amazon' ? 'bg-[#232f3e] text-white' : p.platform.key === 'flipkart' ? 'bg-[#2874f0] text-white' : 'bg-ink text-paper') + '">' + p.platform.label + '</span></div>' +
+          '</div>' +
+          '<div class="p-3 sm:p-3.5 flex flex-col gap-2">' +
+            '<h3 class="text-sm text-ink-soft leading-snug line-clamp-2 min-h-[2.5em]">' + p.name + '</h3>' +
+            '<div class="flex flex-col gap-1">' +
+              '<div class="flex items-baseline gap-2 flex-wrap">' +
+                '<span class="font-display font-bold text-brick tabular-nums leading-none text-lg sm:text-xl">' + p.priceLabel + '</span>' +
+                (p.discountPercent > 0 ? '<span class="text-ink-faint line-through tabular-nums text-xs sm:text-sm">' + p.originalLabel + '</span>' : '') +
+                (p.discountPercent > 0 ? '<span class="font-bold text-gold-dark bg-gold-soft rounded-full tabular-nums text-[11px] px-2 py-0.5">' + p.discountPercent + '% OFF</span>' : '') +
+              '</div>' +
+              (p.discountPercent > 0 ? '<span class="savings-badge text-[11px] py-1 pr-2.5">You save ' + p.savingsLabel + '</span>' : '') +
+            '</div>' +
+          '</div>';
+        grid.appendChild(card);
+      }
+      this.offset += data.products.length;
+      this.hasMore = data.hasMore;
+      this.loading = false;
+    }
+  }`}
+  x-init="
+    const sentinel = $refs.sentinel;
+    const io = new IntersectionObserver((entries) => { if (entries[0].isIntersecting) loadMore() }, { rootMargin: '400px' });
+    io.observe(sentinel);
+  "
+>
+  <div x-ref="sentinel" class="h-4"></div>
+  <div x-show="loading" class="py-8 text-center text-sm text-ink-faint">Loading more deals…</div>
+  <div x-show="!hasMore && offset > 0" class="py-8 text-center text-sm text-ink-faint">You've reached the end — that's every deal in this category right now.</div>
+
+  <a
+    href="#top"
+    x-show="offset > 12"
+    x-cloak
+    class="fixed bottom-5 right-5 z-30 w-11 h-11 rounded-full bg-ink text-paper shadow-lg flex items-center justify-center hover:bg-ink/85 transition-colors"
+    aria-label="Back to top"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" class="w-5 h-5"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+  </a>
+</div>

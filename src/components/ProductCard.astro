@@ -1,0 +1,46 @@
+---
+import PriceBlock from './PriceBlock.astro';
+import PlatformBadge from './PlatformBadge.astro';
+
+interface Props {
+  product: Record<string, any>;
+  eager?: boolean;
+}
+
+const { product, eager = false } = Astro.props;
+const images = Array.isArray(product.images) ? product.images : JSON.parse(product.images);
+const href = `/${product.category_slug}/${product.subcategory_slug}/${product.slug}`;
+---
+
+<a
+  href={href}
+  class="group block rounded-2xl border border-line bg-white/60 overflow-hidden transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-ink/5 hover:border-gold/50"
+>
+  <div class="relative aspect-square bg-paper-warm overflow-hidden">
+    <img
+      src={images[0]}
+      alt={product.name}
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
+      width="600"
+      height="600"
+      class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+    />
+    <span class="absolute top-2 left-2 inline-flex items-center rounded-full bg-ink/80 text-paper text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5">
+      Ad
+    </span>
+    {product.is_featured && (
+      <span class="absolute top-2 right-2 inline-flex items-center rounded-full bg-gold text-white text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 shadow-sm">
+        Editor&rsquo;s Pick
+      </span>
+    )}
+    <div class="absolute bottom-2 left-2">
+      <PlatformBadge product={product} />
+    </div>
+  </div>
+
+  <div class="p-3 sm:p-3.5 flex flex-col gap-2">
+    <h3 class="text-sm text-ink-soft leading-snug line-clamp-2 min-h-[2.5em]">{product.name}</h3>
+    <PriceBlock current={product.current_price} original={product.original_price} size="card" />
+  </div>
+</a>

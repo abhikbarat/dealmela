@@ -1,0 +1,49 @@
+---
+interface Props {
+  banner: Record<string, any> | null;
+}
+const { banner } = Astro.props;
+
+const themeGradients: Record<string, string> = {
+  gold: 'linear-gradient(115deg, #8f6420, #b8802a 35%, #e6ac4a 65%, #b8802a)',
+  brick: 'linear-gradient(115deg, #5c160e, #a32c1e 35%, #c2432f 65%, #a32c1e)',
+  marigold: 'linear-gradient(115deg, #a8500c, #e67e22 35%, #f2a154 65%, #e67e22)',
+  neutral: 'linear-gradient(115deg, #3a2c18, #6b5842 35%, #8f7a5c 65%, #6b5842)',
+};
+
+const theme = banner?.theme || 'neutral';
+const gradient = themeGradients[theme] || themeGradients.neutral;
+const headline = banner?.headline || 'Deals worth clicking for';
+const subheadline = banner?.subheadline || 'Handpicked prices from Amazon, Flipkart & more — verified, not guessed.';
+const ctaText = banner?.cta_text || 'Browse today\u2019s deals';
+const ctaLink = banner?.cta_link || '/electronics';
+---
+
+<section
+  class="relative overflow-hidden banner-shimmer-bg min-h-[34vh] sm:min-h-[300px] max-h-[440px] flex items-center"
+  style={`background-image:${gradient}`}
+>
+  <div class="absolute w-2.5 h-2.5 rounded-full bg-white/70 blur-[1px] top-[18%] left-[12%] banner-dot-a" aria-hidden="true"></div>
+  <div class="absolute w-2 h-2 rounded-full bg-white/60 blur-[1px] top-[65%] left-[22%] banner-dot-b" aria-hidden="true"></div>
+  <div class="absolute w-3 h-3 rounded-full bg-white/50 blur-[1px] top-[30%] right-[16%] banner-dot-a" aria-hidden="true"></div>
+  <div class="absolute w-2 h-2 rounded-full bg-white/60 blur-[1px] top-[70%] right-[28%] banner-dot-b" aria-hidden="true"></div>
+  <div class="absolute w-1.5 h-1.5 rounded-full bg-white/70 blur-[1px] top-[45%] left-[45%] banner-dot-a" aria-hidden="true"></div>
+
+  <div class="relative mx-auto max-w-6xl px-5 sm:px-8 w-full">
+    <div class="max-w-md">
+      <h1 class="font-display text-2xl sm:text-4xl font-semibold text-white leading-tight drop-shadow-sm">
+        {headline}
+      </h1>
+      <p class="mt-2.5 text-sm sm:text-base text-white/90 leading-relaxed max-w-sm">
+        {subheadline}
+      </p>
+      <a
+        href={ctaLink}
+        class="mt-5 inline-flex items-center gap-1.5 rounded-full bg-white text-ink font-semibold text-sm px-5 py-2.5 hover:bg-paper transition-colors shadow-sm"
+      >
+        {ctaText}
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" class="w-4 h-4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+      </a>
+    </div>
+  </div>
+</section>

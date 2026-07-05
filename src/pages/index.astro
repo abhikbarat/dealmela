@@ -1,0 +1,44 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import FestiveBanner from '../components/FestiveBanner.astro';
+import CategoryTile from '../components/CategoryTile.astro';
+import ProductRail from '../components/ProductRail.astro';
+import ProductGrid from '../components/ProductGrid.astro';
+import { getActiveBanner, getCategoryTree, getTrendingProducts, getLatestProducts } from '../lib/queries.js';
+
+const [banner, categories, trending, latest] = await Promise.all([
+  getActiveBanner(),
+  getCategoryTree(),
+  getTrendingProducts({ days: 7, limit: 10 }),
+  getLatestProducts({ limit: 12 }),
+]);
+---
+
+<BaseLayout
+  title="Handpicked Deals from Amazon, Flipkart & More"
+  description="DealMela curates real, verified deals across electronics and fashion — no fake countdowns, no dark patterns, just prices worth clicking through for."
+>
+  <FestiveBanner banner={banner} />
+
+  <section class="mx-auto max-w-6xl px-4 sm:px-6 pt-6 sm:pt-8">
+    <CategoryTile categories={categories} />
+  </section>
+
+  {trending.length > 0 && (
+    <section class="mx-auto max-w-6xl px-4 sm:px-6 pt-10 sm:pt-14">
+      <div class="flex items-baseline justify-between mb-4">
+        <h2 class="font-display text-xl sm:text-2xl font-semibold text-ink">Trending This Week</h2>
+        <span class="text-xs text-ink-faint">Based on real click activity</span>
+      </div>
+      <ProductRail products={trending} eager={true} />
+    </section>
+  )}
+
+  <section class="mx-auto max-w-6xl px-4 sm:px-6 pt-10 sm:pt-14 pb-16">
+    <div class="flex items-baseline justify-between mb-4">
+      <h2 class="font-display text-xl sm:text-2xl font-semibold text-ink">Latest Deals</h2>
+      <span class="text-xs text-ink-faint">Newest additions first</span>
+    </div>
+    <ProductGrid products={latest} />
+  </section>
+</BaseLayout>

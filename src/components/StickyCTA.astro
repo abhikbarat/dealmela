@@ -1,0 +1,47 @@
+---
+import { formatPrice } from '../lib/format.js';
+import { ctaLabel } from '../lib/format.js';
+
+interface Props {
+  product: Record<string, any>;
+}
+const { product } = Astro.props;
+const label = ctaLabel(product);
+---
+
+<div
+  x-data="{ visible: false }"
+  x-init={`
+    const anchor = document.getElementById('primary-cta-anchor');
+    if (anchor) {
+      const io = new IntersectionObserver(([entry]) => { visible = !entry.isIntersecting }, { rootMargin: '0px' });
+      io.observe(anchor);
+    }
+  `}
+  x-show="visible"
+  x-transition:enter="transition ease-out duration-200"
+  x-transition:enter-start="translate-y-full"
+  x-transition:enter-end="translate-y-0"
+  x-transition:leave="transition ease-in duration-150"
+  x-transition:leave-start="translate-y-0"
+  x-transition:leave-end="translate-y-full"
+  x-cloak
+  class="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-line px-4 py-3 flex items-center gap-3"
+  style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));"
+>
+  <div class="flex flex-col min-w-0">
+    <span class="font-display font-bold text-brick text-lg tabular-nums leading-none">{formatPrice(product.current_price)}</span>
+    <span class="text-[10px] text-ink-faint mt-0.5">Ad · Earns a commission</span>
+  </div>
+  <a
+    href={product.affiliate_link}
+    target="_blank"
+    rel="noopener noreferrer sponsored"
+    data-track-click
+    data-product-id={product.id}
+    data-source-page="product_detail_sticky"
+    class="flex-1 inline-flex items-center justify-center rounded-full bg-brick text-white font-semibold text-sm px-4 py-3 active:scale-[0.98] transition-transform whitespace-nowrap"
+  >
+    {label}
+  </a>
+</div>

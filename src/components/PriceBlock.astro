@@ -1,0 +1,48 @@
+---
+import { formatPrice, formatSavings, computeDiscountPercent } from '../lib/format.js';
+
+interface Props {
+  current: number;
+  original: number;
+  size?: 'card' | 'detail';
+}
+
+const { current, original, size = 'card' } = Astro.props;
+const discount = computeDiscountPercent(current, original);
+const savings = formatSavings(current, original);
+const isDetail = size === 'detail';
+---
+
+<div class:list={['flex flex-col', isDetail ? 'gap-2' : 'gap-1']}>
+  <div class="flex items-baseline gap-2 flex-wrap">
+    <span
+      class:list={[
+        'font-display font-bold text-brick tabular-nums leading-none',
+        isDetail ? 'text-3xl sm:text-4xl' : 'text-lg sm:text-xl',
+      ]}
+    >
+      {formatPrice(current)}
+    </span>
+    {discount > 0 && (
+      <span class:list={['text-ink-faint line-through tabular-nums', isDetail ? 'text-base' : 'text-xs sm:text-sm']}>
+        {formatPrice(original)}
+      </span>
+    )}
+    {discount > 0 && (
+      <span
+        class:list={[
+          'font-bold text-gold-dark bg-gold-soft rounded-full tabular-nums',
+          isDetail ? 'text-sm px-2.5 py-1' : 'text-[11px] px-2 py-0.5',
+        ]}
+      >
+        {discount}% OFF
+      </span>
+    )}
+  </div>
+
+  {discount > 0 && (
+    <span class:list={['savings-badge', isDetail ? 'text-sm py-1.5 pr-3' : 'text-[11px] py-1 pr-2.5']}>
+      You save {savings}
+    </span>
+  )}
+</div>
