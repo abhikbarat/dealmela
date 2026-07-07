@@ -1,8 +1,11 @@
 // Thin Postgres connection wrapper.
 //
-// In production on Netlify, DATABASE_URL is injected automatically by
-// Netlify Database (see README "Deploying to Netlify"). Locally, it comes
-// from .env. Either way this file doesn't need to know the difference.
+// Netlify Database auto-injects a connection string into the deployed
+// environment, but the exact variable name has shifted across Netlify's own
+// docs/tooling versions (NETLIFY_DB_URL vs NETLIFY_DATABASE_URL). Rather than
+// bet on one, this checks DATABASE_URL first (what you'd set locally or on
+// any other host) and falls back to whichever Netlify-specific name is
+// actually present at runtime.
 
 import pg from 'pg';
 
@@ -10,13 +13,23 @@ const { Pool } = pg;
 
 let pool;
 
+function resolveConnectionString() {
+  return (
+    process.env.DATABASE_URL ||
+    process.env.NETLIFY_DATABASE_URL ||
+    process.env.NETLIFY_DB_URL ||
+    null
+  );
+}
+
 function getPool() {
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL;
+    const connectionString = resolveConnectionString();
     if (!connectionString) {
       throw new Error(
-        'DATABASE_URL is not set. Locally: copy .env.example to .env and fill it in. ' +
-        'On Netlify: run `netlify db init` (or link a database in the dashboard) so it is injected automatically.'
+        'No database connection string found (checked DATABASE_URL, NETLIFY_DATABASE_URL, NETLIFY_DB_URL). ' +
+        'Locally: copy .env.example to .env and fill it in. ' +
+        'On Netlify: run `netlify database init` (or create a database in the dashboard) so one is injected automatically.'
       );
     }
     pool = new Pool({
