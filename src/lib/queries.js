@@ -348,3 +348,108 @@ export async function getRecentSearchesForAdmin({ limit = 40 } = {}) {
   );
   return rows;
 }
+
+// ============================================================
+// CATEGORY MANAGEMENT
+// ============================================================
+
+export async function getCategoryByIdForAdmin(id) {
+  const { rows } = await query(`SELECT * FROM categories WHERE id = $1`, [id]);
+  return rows[0] || null;
+}
+
+export async function isCategorySlugTaken(slug, excludeId = null) {
+  const { rows } = excludeId
+    ? await query(`SELECT id FROM categories WHERE slug = $1 AND id != $2`, [slug, excludeId])
+    : await query(`SELECT id FROM categories WHERE slug = $1`, [slug]);
+  return rows.length > 0;
+}
+
+export async function createCategory(data) {
+  const { rows } = await query(
+    `INSERT INTO categories (name, slug, parent_id, icon, sort_order)
+     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [data.name, data.slug, data.parent_id || null, data.icon || null, data.sort_order || 0]
+  );
+  return rows[0].id;
+}
+
+export async function updateCategory(id, data) {
+  await query(
+    `UPDATE categories SET name = $1, slug = $2, parent_id = $3, icon = $4, sort_order = $5 WHERE id = $6`,
+    [data.name, data.slug, data.parent_id || null, data.icon || null, data.sort_order || 0, id]
+  );
+}
+
+/** What's blocking deletion, if anything — checked before every delete so the admin gets a clear reason instead of a raw SQL error. */
+export async function getCategoryDeleteBlockers(id) {
+  const [{ rows: subRows }, { rows: prodRows }] = await Promise.all([
+    query(`SELECT count(*)::int AS n FROM categories WHERE parent_id = $1`, [id]),
+    query(`SELECT count(*)::int AS n FROM products WHERE category_id = $1 OR subcategory_id = $1`, [id]),
+  ]);
+  return { subcategoryCount: subRows[0].n, productCount: prodRows[0].n };
+}
+
+export async function deleteCategory(id) {
+  await query(`DELETE FROM categories WHERE id = $1`, [id]);
+}
+
+// ============================================================
+// BANNER MANAGEMENT
+// ============================================================
+
+export async function getAllBannersForAdmin() {
+  const { rows } = await query(`SELECT * FROM banners ORDER BY is_default DESC, sort_order ASC, created_at DESC`);
+  return rows;
+}
+
+export async function getBannerByIdForAdmin(id) {
+  const { rows } = await query(`SELECT * FROM banners WHERE id = $1`, [id]);
+  return rows[0] || null;
+}
+
+/** Only one banner may ever be the permanent default — this clears the flag on every other banner first. */
+async function clearOtherDefaults(exceptId = null) {
+  if (exceptId) {
+    await query(`UPDATE banners SET is_default = false WHERE id != $1`, [exceptId]);
+  } else {
+    await query(`UPDATE banners SET is_default = false`);
+  }
+}
+
+export async function createBanner(data) {
+  const { rows } = await query(
+    `INSERT INTO banners (title, headline, subheadline, cta_text, cta_link, theme, image_url, lottie_url, is_default, is_active, start_date, end_date, sort_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+    [
+      data.title, data.headline, data.subheadline || null, data.cta_text || null, data.cta_link || null,
+      data.theme, data.image_url || null, data.lottie_url || null,
+      !!data.is_default, data.is_active !== false, data.start_date || null, data.end_date || null,
+      data.sort_order || 0,
+    ]
+  );
+  const id = rows[0].id;
+  if (data.is_default) await clearOtherDefaults(id);
+  return id;
+}
+
+export async function updateBanner(id, data) {
+  await query(
+    `UPDATE banners SET
+       title = $1, headline = $2, subheadline = $3, cta_text = $4, cta_link = $5, theme = $6,
+       image_url = $7, lottie_url = $8, is_default = $9, is_active = $10,
+       start_date = $11, end_date = $12, sort_order = $13
+     WHERE id = $14`,
+    [
+      data.title, data.headline, data.subheadline || null, data.cta_text || null, data.cta_link || null,
+      data.theme, data.image_url || null, data.lottie_url || null,
+      !!data.is_default, data.is_active !== false, data.start_date || null, data.end_date || null,
+      data.sort_order || 0, id,
+    ]
+  );
+  if (data.is_default) await clearOtherDefaults(id);
+}
+
+export async function deleteBanner(id) {
+  await query(`DELETE FROM banners WHERE id = $1`, [id]);
+}

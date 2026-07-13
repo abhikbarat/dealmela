@@ -135,6 +135,15 @@ From there:
 - **Analytics** shows most-clicked deals (7/30-day toggle) and recent search
   queries, with zero-result searches flagged — that list is your best signal
   for what to add next.
+- **Categories** lets you add new top-level categories or subcategories (pick
+  an icon for top-level ones, since those show as homepage tiles), rename or
+  re-slug existing ones, and delete — though deleting only works once nothing
+  (no subcategory, no product) still points at that category, and it'll tell
+  you exactly what's in the way if it doesn't.
+- **Banners** lets you schedule festive banners with start/end dates, pick a
+  color theme, and mark one as the permanent default fallback — only one
+  banner can hold that flag at a time, and checking it on any banner
+  automatically clears it from whichever one had it before.
 
 This part of the admin panel doesn't have its own signup page by design (only
 the account-creation form appears, and only when zero admin accounts exist) —
@@ -162,24 +171,21 @@ UI.
 - **Admin panel**: session-based single-admin auth (first-run account setup,
   no visible signup after that), full product CRUD with validation
   (duplicate-slug protection, minimum-3-images, price sanity checks, required
-  editorial note), and an analytics dashboard reading real click/search data
+  editorial note), category management (create/edit/delete, with guard rails
+  against deleting a category that still has subcategories or products under
+  it), banner management (create/edit/delete, with the "only one banner can
+  be the permanent default" rule enforced automatically — checking that box
+  on any banner un-sets it on whichever one had it before), and an analytics
+  dashboard reading real click/search data
 - Click-through analytics logging (`click_events`) and search logging
   (`search_queries`) — both wired and populating
 
 ## What's next
 
-- **Category management UI** — right now adding a brand-new top-level category
-  or subcategory (beyond the 8 that already exist) means one SQL `INSERT`
-  against the `categories` table; there's no admin form for it yet since the
-  product form just needs categories to already exist for its dropdowns.
-- **Banner management UI** — the scheduling logic is fully live (the homepage
-  already picks the right banner by date range, tested with a real
-  currently-active example), there's just no admin form yet to create new
-  banners or set their dates without SQL.
 - **Phase 3**: replace all seed data with your real catalogue via the admin
   panel, then a Lighthouse pass against production.
 
-Say the word whenever you want either of those.
+Say the word whenever you want that started, or if anything else comes up.
 
 ## Design system reference
 

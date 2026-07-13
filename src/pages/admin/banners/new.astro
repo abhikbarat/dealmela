@@ -1,0 +1,116 @@
+---
+export const prerender = false;
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { createBanner } from '../../../lib/queries.js';
+
+let error = null;
+let values = {
+  title: '', headline: '', subheadline: '', cta_text: '', cta_link: '',
+  theme: 'gold', image_url: '', lottie_url: '',
+  is_default: false, is_active: true,
+  start_date: '', end_date: '', sort_order: '0',
+};
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  for (const key of Object.keys(values)) {
+    if (key === 'is_default' || key === 'is_active') continue;
+    values[key] = String(form.get(key) || '').trim();
+  }
+  values.is_default = form.get('is_default') === 'on';
+  values.is_active = form.get('is_active') === 'on';
+
+  if (!values.title) error = 'Internal title is required.';
+  else if (!values.headline) error = 'Headline is required — this is the large text shown on the banner.';
+  else if (values.start_date && values.end_date && values.start_date > values.end_date) error = 'Start date is after end date — check the dates.';
+
+  if (!error) {
+    await createBanner({
+      ...values,
+      sort_order: Number(values.sort_order) || 0,
+      start_date: values.start_date || null,
+      end_date: values.end_date || null,
+    });
+    return Astro.redirect('/admin/banners');
+  }
+}
+---
+
+<AdminLayout title="Add banner">
+  <a href="/admin/banners" class="text-sm text-ink-soft hover:text-brick mb-4 inline-block">← Back to banners</a>
+  <h1 class="text-2xl font-display font-semibold mb-6">Add a banner</h1>
+
+  {error && (
+    <div class="mb-5 rounded-lg bg-brick/10 border border-brick/30 text-brick text-sm px-4 py-2.5">{error}</div>
+  )}
+
+  <form method="POST" class="flex flex-col gap-4 max-w-lg">
+    <div>
+      <label class="text-xs font-semibold text-ink-soft">Internal title (for your reference only, not shown to visitors)</label>
+      <input name="title" required value={values.title} placeholder="e.g. Diwali 2026" class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+    </div>
+    <div>
+      <label class="text-xs font-semibold text-ink-soft">Headline (large text on the banner)</label>
+      <input name="headline" required value={values.headline} placeholder="e.g. Diwali Dhamaka is here" class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+    </div>
+    <div>
+      <label class="text-xs font-semibold text-ink-soft">Subheadline (optional, smaller supporting text)</label>
+      <input name="subheadline" value={values.subheadline} class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+    </div>
+
+    <div class="grid grid-cols-2 gap-3.5">
+      <div>
+        <label class="text-xs font-semibold text-ink-soft">Button text</label>
+        <input name="cta_text" value={values.cta_text} placeholder="Shop the sale" class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-ink-soft">Button link</label>
+        <input name="cta_link" value={values.cta_link} placeholder="/electronics" class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+      </div>
+    </div>
+
+    <div>
+      <label class="text-xs font-semibold text-ink-soft">Color theme</label>
+      <select name="theme" class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40">
+        <option value="gold" selected={values.theme === 'gold'}>Gold</option>
+        <option value="brick" selected={values.theme === 'brick'}>Brick red</option>
+        <option value="marigold" selected={values.theme === 'marigold'}>Marigold orange</option>
+        <option value="neutral" selected={values.theme === 'neutral'}>Neutral (quiet, non-festive)</option>
+      </select>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3.5">
+      <div>
+        <label class="text-xs font-semibold text-ink-soft">Starts (optional)</label>
+        <input name="start_date" type="date" value={values.start_date} class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-ink-soft">Ends (optional)</label>
+        <input name="end_date" type="date" value={values.end_date} class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+      </div>
+    </div>
+    <p class="text-xs text-ink-faint -mt-2">Leave both blank for a banner that's eligible any time it's active — useful for the one permanent default.</p>
+
+    <div>
+      <label class="text-xs font-semibold text-ink-soft">Sort order (when multiple banners are eligible on the same day, lower number wins)</label>
+      <input name="sort_order" type="number" value={values.sort_order} class="mt-1 w-24 rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brick/40" />
+    </div>
+
+    <div class="flex flex-col gap-2 pt-1">
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="is_active" checked={values.is_active} class="rounded border-line" />
+        Active (eligible to be shown at all)
+      </label>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="is_default" checked={values.is_default} class="rounded border-line" />
+        Make this the permanent default
+      </label>
+      <p class="text-xs text-ink-faint pl-6">Only one banner can be the default — checking this will automatically un-set it on whichever banner currently has it.</p>
+    </div>
+
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="rounded-full bg-brick text-white font-semibold text-sm px-6 py-2.5 hover:bg-brick-dark transition-colors">Create banner</button>
+      <a href="/admin/banners" class="rounded-full border border-line text-ink-soft text-sm px-6 py-2.5 hover:border-ink transition-colors">Cancel</a>
+    </div>
+  </form>
+</AdminLayout>

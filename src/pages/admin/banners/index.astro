@@ -1,0 +1,54 @@
+---
+export const prerender = false;
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getAllBannersForAdmin } from '../../../lib/queries.js';
+
+const banners = await getAllBannersForAdmin();
+
+const themeSwatch = {
+  gold: '#b8802a',
+  brick: '#a32c1e',
+  marigold: '#e67e22',
+  neutral: '#6b5842',
+};
+
+function formatDateRange(b) {
+  if (!b.start_date && !b.end_date) return 'Always eligible';
+  const fmt = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  return `${b.start_date ? fmt(b.start_date) : '…'} → ${b.end_date ? fmt(b.end_date) : '…'}`;
+}
+---
+
+<AdminLayout title="Banners">
+  <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+    <h1 class="text-2xl font-display font-semibold">Banners</h1>
+    <a href="/admin/banners/new" class="rounded-full bg-brick text-white text-sm font-semibold px-4 py-2 hover:bg-brick-dark transition-colors">
+      + Add banner
+    </a>
+  </div>
+
+  <p class="text-sm text-ink-faint mb-5">
+    The homepage shows whichever non-default banner is currently active and within its date range (highest priority first); if none match, it falls back to the one marked <strong>Default</strong>.
+  </p>
+
+  {banners.length === 0 ? (
+    <p class="text-ink-soft text-sm py-10 text-center">No banners yet — the homepage will show a plain built-in fallback until one exists.</p>
+  ) : (
+    <div class="rounded-xl border border-line overflow-hidden bg-white">
+      {banners.map((b) => (
+        <a href={`/admin/banners/${b.id}/edit`} class="flex items-center gap-3 px-4 py-3 border-t border-line first:border-t-0 hover:bg-paper-warm">
+          <span class="w-3 h-3 rounded-full shrink-0" style={`background:${themeSwatch[b.theme]}`}></span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-medium text-sm">{b.title}</span>
+              {b.is_default && <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-gold text-white">Default</span>}
+              {!b.is_active && <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-700">Inactive</span>}
+            </div>
+            <p class="text-xs text-ink-faint mt-0.5">{formatDateRange(b)}</p>
+          </div>
+          <span class="text-xs text-brick font-semibold shrink-0">Edit</span>
+        </a>
+      ))}
+    </div>
+  )}
+</AdminLayout>
