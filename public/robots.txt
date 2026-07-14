@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://dealmela.example/sitemap.xml
+Sitemap: https://deal-mela.netlify.app/sitemap.xml
